@@ -1,8 +1,13 @@
 const express = require('express');
 const app = express();
 const pg = require('pg');
+const bodyParser = require('body-parser');
 const dotenv = require('dotenv');
 dotenv.config();
+
+app.use(bodyParser.urlencoded({extended:true}));
+app.use(bodyParser.json());
+app.use(express.static('server/public'));
 
 const PORT = process.env.PORT || 5000;
 
@@ -27,15 +32,25 @@ pool.on('connect', () => {
     console.log('Successfully connected to DB');
 })
 
-app.get('/rds-test', async (req,res) => {
+app.post('/add-item', async (req,res) => {
     try{
-        const result = await pool.query(`SELECT * FROM "test";`);
-        res.send(result.rows);
+        const result = await pool.query(`INSERT INTO "test" ("name") VALUES ($1);`, [req.body.input]);
+        res.sendStatus(200);
     }
     catch(err) {
-        console.log(`*** ERROR in DB QUERY: ${err}`)
+        console.warn(`*** ERROR in DB QUERY: ${err}`)
         res.sendStatus(500);
     }
+})
+
+app.get('/rds-test',  (req,res) => {
+        pool.query(`SELECT * FROM "test";`)
+        .then(response => {
+            res.send(response.rows);
+        })
+        .catch(err => {
+            res.sendStatus(500);
+        })
 });
 
 app.listen(PORT, () => {
